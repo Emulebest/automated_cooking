@@ -1,0 +1,26 @@
+version: "3.6"
+
+services:
+  proxy-server:
+    image: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./app/auth/auth.sock:/etc/nginx/auth.sock
+    ports:
+      - "8080:8080"
+    depends_on:
+      - flask
+    environment:
+      - NGINX_HOST=foobar.com
+      - NGINX_PORT=80
+
+  flask:
+    build:
+      context: .
+      dockerfile: Dockerfile.Python
+    working_dir: /app
+    ports:
+      - '3031:3031'
+    volumes:
+      - ./app/auth:/app
+    command: /bin/sh -c "pip install -r requirements.txt && uwsgi --ini auth.ini"
