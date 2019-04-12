@@ -1,5 +1,6 @@
 package controllers;
 
+import play.libs.Json;
 import play.mvc.*;
 
 /**
@@ -15,7 +16,9 @@ public class HomeController extends Controller {
      * <code>GET</code> request with a path of <code>/</code>.
      */
     public Result index() {
-        return ok(views.html.index.render());
+        var obj = Json.newObject();
+        obj.put("hello", "world");
+        return ok(obj);
     }
 
 }
