@@ -1,0 +1,6 @@
+app/cooking_service/.g8
+.idea
+app/cooking_service/target
+app/cooking_service/project/target
+app/cooking_service/project/project
+app/cooking_service/logs

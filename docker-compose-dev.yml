@@ -24,3 +24,21 @@ services:
     volumes:
       - ./app/auth:/app
     command: /bin/sh -c "pip install -r requirements.txt && uwsgi --ini auth.ini"
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: cookingservice
+      POSTGRES_USER: play
+      POSTGRES_PASSWORD: admin
+
+
+  cooking_service:
+    image: openjdk:11.0.2
+    working_dir: /app
+    volumes:
+      - ./app/cooking_service:/app
+    ports:
+      - '9000:9000'
+    command: sbt run
