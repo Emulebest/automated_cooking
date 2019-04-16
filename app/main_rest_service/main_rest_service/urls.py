@@ -18,6 +18,11 @@ from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('auth/', include('rest_framework_social_oauth2.urls')),
-    path('o/', include('oauth2_provider.urls', namespace='oauth2_provider'))
+    path('oauth2/', include('rest_framework_social_oauth2.urls')),
+    path('o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
+    path('auth/', include('local_auth.urls'))
+]
+
+main_url_pattern = [
+    path('/api', include(urlpatterns))
 ]

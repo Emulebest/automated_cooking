@@ -69,7 +69,6 @@ import { GoogleSignInSuccess } from 'angular-google-signin';
 export class AuthComponent implements OnInit {
   constructor() {
   }
-
   private myClientId = '577955276766-nlpt4jjg6g85aenr4mcm8lfpriqlekap.apps.googleusercontent.com';
 
   onGoogleSignInSuccess(event: GoogleSignInSuccess) {
@@ -82,6 +81,7 @@ export class AuthComponent implements OnInit {
         .getId()); // Do not send to your backend! Use an ID token instead.
     console.log('Name: ' + profile.getName());
   }
+
   ngOnInit() {
   }
 }

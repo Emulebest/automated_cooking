@@ -15,7 +15,6 @@ import os
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
 
@@ -26,7 +25,6 @@ SECRET_KEY = '$sc7z*$mub!&n6ppy6x&c$irlk84=#5i-7jqm)xyj@=qd=nnf1'
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -41,6 +39,7 @@ INSTALLED_APPS = [
     'oauth2_provider',
     'social_django',
     'rest_framework_social_oauth2',
+    'local_auth'
 ]
 
 MIDDLEWARE = [
@@ -76,7 +75,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'main_rest_service.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
@@ -100,12 +98,21 @@ OAUTH2_PROVIDER = {
     'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to your groups'}
 }
 
+OAUTH2_SERVER_ADDR = os.environ.get("OAUTH2_SERVER_ADDR", "localhost")
+OAUTH2_SERVER_PORT = os.environ.get("OAUTH2_SERVER_PORT", "8000")
+
+CLIENT_ID = "TwKxueeZ83FYOgYER21qaRibEcd4bhmz0yOZoaXb"
+CLIENT_SECRET = "PzGfagsJW7rGWBGAVlflmEk3kZY4kOjLE5oWvN6JkEQEnLhPMVrpEgsu1Ctqy89uF12yzQ47Lj8y9yZDiKvYkbp80F9YQ6iegYzDhPF1zw5WGJmxoSXy3S2vBkr6J1Fq"
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',  # django-oauth-toolkit >= 1.0.0
         'rest_framework_social_oauth2.authentication.SocialAuthentication',
-    )
+    ),
+
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
 }
 
 # Password validation
@@ -126,7 +133,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/2.2/topics/i18n/
 
@@ -140,8 +146,20 @@ USE_L10N = True
 
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/2.2/howto/static-files/
 
 STATIC_URL = '/static/'
+
+AUTHENTICATION_BACKENDS = (
+
+    'social_core.backends.google.GoogleOAuth2',
+
+    'rest_framework_social_oauth2.backends.DjangoOAuth2',
+
+    'django.contrib.auth.backends.ModelBackend',
+
+)
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "577955276766-nlpt4jjg6g85aenr4mcm8lfpriqlekap.apps.googleusercontent.com"
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = "94AlX-QNitQzGCvduOMuIFEr"
