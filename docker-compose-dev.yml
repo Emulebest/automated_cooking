@@ -10,35 +10,23 @@ services:
       - "8080:8080"
     depends_on:
       - flask
-    environment:
-      - NGINX_HOST=foobar.com
-      - NGINX_PORT=80
 
   flask:
     build:
       context: .
       dockerfile: Dockerfile.Python
     working_dir: /app
-    ports:
-      - '3031:3031'
+    expose:
+      - '3031'
     volumes:
       - ./app/auth:/app
     command: /bin/sh -c "pip install -r requirements.txt && uwsgi --ini auth.ini"
 
-  db:
-    image: postgres
-    restart: always
-    environment:
-      POSTGRES_DB: cookingservice
-      POSTGRES_USER: play
-      POSTGRES_PASSWORD: admin
-
-
-  cooking_service:
-    image: openjdk:11.0.2
+  java-service:
+    image: openjdk:11-stretch
     working_dir: /app
-    volumes:
-      - ./app/cooking_service:/app
     ports:
-      - '9000:9000'
-    command: sbt run
+      - "8090:8090"
+    volumes:
+      - ./app/main-rest-service/target/main-rest-service-0.1.0.jar:/app/main-rest-service-0.1.0.jar
+    command: java -jar main-rest-service-0.1.0.jar
