@@ -11,22 +11,10 @@ services:
     depends_on:
       - flask
 
-  flask:
-    build:
-      context: .
-      dockerfile: Dockerfile.Python
-    working_dir: /app
-    expose:
-      - '3031'
-    volumes:
-      - ./app/auth:/app
-    command: /bin/sh -c "pip install -r requirements.txt && uwsgi --ini auth.ini"
-
-  java-service:
-    image: openjdk:11-stretch
-    working_dir: /app
-    ports:
-      - "8090:8090"
-    volumes:
-      - ./app/main-rest-service/target/main-rest-service-0.1.0.jar:/app/main-rest-service-0.1.0.jar
-    command: java -jar main-rest-service-0.1.0.jar
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_DB: main_rest_service
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
