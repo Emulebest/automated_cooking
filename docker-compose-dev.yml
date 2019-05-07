@@ -37,7 +37,10 @@ services:
     working_dir: /app
     volumes:
       - "./app/device_microservice:/app"
-    command: /bin/sh -c "pip install -r requirements.txt && gunicorn -b 0.0.0.0:8080 main:app -w 4 -k uvicorn.workers.UvicornH11Worker"
+    command: /bin/sh -c "pip install -r requirements.txt && gunicorn -b 0.0.0.0:8080 main:main -w 4 -k uvicorn.workers.UvicornH11Worker"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       - redis
     ports:

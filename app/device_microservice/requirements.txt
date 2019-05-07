@@ -1,3 +1,4 @@
+aioredis
 Click==7.0
 dataclasses==0.6
 fastapi==0.20.0
