@@ -1,5 +1,6 @@
 import asyncio
 
+import uvicorn
 from aioredis import Redis
 from aioredis.abc import AbcChannel
 from aioredis.pubsub import Receiver
@@ -11,22 +12,30 @@ from settings import create_redis
 
 app = FastAPI()
 
-redis: Redis
+redis = None
 
 
 async def reader(mpsc: Receiver):
     async for channel, msg in mpsc.iter():
         assert isinstance(channel, AbcChannel)
-        print(f"Got {msg} in channel {channel}")
+        print(f"Got {msg} in channel {channel}", flush=True)
 
 
-async def main(scope: Scope):
+async def main(scope: Scope, receive, send):
     loop = asyncio.get_event_loop()
     global redis
-    redis = await create_redis()
+    if redis is None:
+        redis = await create_redis()
     mpsc = Receiver(loop=loop)
-    await asyncio.ensure_future(reader(mpsc))
-    app(scope)
+    await redis.subscribe(mpsc.channel('hello'))
+    task = asyncio.ensure_future(reader(mpsc))
+    await app(scope)(receive, send)
+    await task
+
+
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
 
 
 @app.websocket_route("/ws")
