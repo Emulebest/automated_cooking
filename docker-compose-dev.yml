@@ -31,6 +31,8 @@ services:
       - redis
     ports:
       - "3000:3000"
+    environment:
+      - 'SECRET=$sc7z*$mub!&n6ppy6x&c$irlk84=#5i-7jqm)xyj@=qd=nnf1'
 
   device:
     image: pypy:3.6
@@ -39,9 +41,10 @@ services:
       - "./app/device_microservice:/app"
     command: /bin/sh -c "pip install -r requirements.txt && alembic upgrade head && gunicorn -b 0.0.0.0:8080 main:app -w 4 -k uvicorn.workers.UvicornH11Worker"
     environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - DATABASE_URL=sqlite:///./test.db
+      - 'REDIS_HOST=redis'
+      - 'REDIS_PORT=6379'
+      - 'DATABASE_URL=sqlite:///./test.db'
+      - 'SECRET=$sc7z*$mub!&n6ppy6x&c$irlk84=#5i-7jqm)xyj@=qd=nnf1'
     depends_on:
       - redis
     ports:

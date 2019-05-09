@@ -1,19 +1,25 @@
 import asyncio
-from typing import List
+from typing import List, Callable
 
+import jwt
 from aioredis import RedisConnection
 from aioredis.abc import AbcChannel
 from aioredis.pubsub import Receiver
 from fastapi import FastAPI
 import databases
+from starlette.middleware.authentication import AuthenticationMiddleware
+from starlette.requests import Request
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from models import devices
-from settings import create_redis, DATABASE_URL
+from settings import create_redis, DATABASE_URL, SECRET, ALGORITHM
 from data_types import Device
 
 from data_types import DeviceRequest
 
+from backend import BasicAuthBackend
+
 app = FastAPI()
+app.add_middleware(AuthenticationMiddleware, backend=BasicAuthBackend())
 
 redis: RedisConnection = None
 
@@ -47,14 +53,15 @@ async def shutdown():
 
 
 @app.get("/devices/", response_model=List[Device])
-async def read_devices():
-    query = devices.select()
+async def read_devices(request: Request):
+    query = devices.select().where(devices.c.user == request.user.display_name)
     return await database.fetch_all(query)
 
 
 @app.post("/devices/", response_model=Device, status_code=201)
-async def create_device(device: DeviceRequest):
-    query = devices.insert().values(description=device.description, status=device.status)
+async def create_device(request: Request, device: DeviceRequest):
+    query = devices.insert().values(description=device.description, status=device.status,
+                                    user=request.user.display_name)
     record_id = await database.execute(query)
     return {**device.dict(), "id": record_id}
 
