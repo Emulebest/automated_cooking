@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 import os
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
+from datetime import timedelta
+
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Quick-start development settings - unsuitable for production
@@ -26,6 +28,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+
+AUTHENTICATION_BACKENDS = [
+    'local_auth.backends.HashedPasswordAuthBackend',
+]
 # Application definition
 
 INSTALLED_APPS = [
@@ -36,10 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
-    'oauth2_provider',
-    'social_django',
-    'rest_framework_social_oauth2',
-    'local_auth'
+    'rest_framework_simplejwt'
 ]
 
 MIDDLEWARE = [
@@ -93,25 +96,13 @@ DATABASES = {
     }
 }
 
-OAUTH2_PROVIDER = {
-    # this is the list of available scopes
-    'SCOPES': {'read': 'Read scope', 'write': 'Write scope', 'groups': 'Access to your groups'}
-}
-
-OAUTH2_SERVER_ADDR = os.environ.get("OAUTH2_SERVER_ADDR", "localhost")
-OAUTH2_SERVER_PORT = os.environ.get("OAUTH2_SERVER_PORT", "8000")
-
-CLIENT_ID = "TwKxueeZ83FYOgYER21qaRibEcd4bhmz0yOZoaXb"
-CLIENT_SECRET = "PzGfagsJW7rGWBGAVlflmEk3kZY4kOjLE5oWvN6JkEQEnLhPMVrpEgsu1Ctqy89uF12yzQ47Lj8y9yZDiKvYkbp80F9YQ6iegYzDhPF1zw5WGJmxoSXy3S2vBkr6J1Fq"
-
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',  # django-oauth-toolkit >= 1.0.0
-        'rest_framework_social_oauth2.authentication.SocialAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
 
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.DjangoModelPermissionsOrAnonReadOnly',
     ),
 }
 
@@ -151,15 +142,26 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
-AUTHENTICATION_BACKENDS = (
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
 
-    'social_core.backends.google.GoogleOAuth2',
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
 
-    'rest_framework_social_oauth2.backends.DjangoOAuth2',
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
 
-    'django.contrib.auth.backends.ModelBackend',
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
 
-)
+    'JTI_CLAIM': 'jti',
 
-SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "577955276766-nlpt4jjg6g85aenr4mcm8lfpriqlekap.apps.googleusercontent.com"
-SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = "94AlX-QNitQzGCvduOMuIFEr"
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+}
