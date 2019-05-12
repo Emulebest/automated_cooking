@@ -5,6 +5,8 @@
             :url "https://www.eclipse.org/legal/epl-2.0/"}
   :dependencies [[org.clojure/clojure "1.10.0"]
                  [com.taoensso/carmine "2.19.1"]
-                 [org.clojure/core.async "0.4.490"]]
+                 [org.clojure/core.async "0.4.490"]
+                 [org.clojure/data.json "0.2.6"]
+                 [clojurewerkz/machine_head "1.0.0"]]
   :repl-options {:init-ns sous-vide-microservice.core}
   :main sous-vide-microservice.core/-main)

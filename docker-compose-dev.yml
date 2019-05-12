@@ -51,8 +51,22 @@ services:
     ports:
       - "8080:8080"
 
+  sous_vide:
+    image: clojure:latest
+    working_dir: /app
+    volumes:
+      - "./app/sous_vide_microservice:/app"
+    depends_on:
+      - redis
+      - mosquitto
+    command: lein run
 
   redis:
     image: redis:latest
     expose:
       - 6379
+
+  mosquitto:
+    image: eclipse-mosquitto:latest
+    expose:
+      - 1883
