@@ -39,7 +39,7 @@
       (let [converted (convert-msg msg)
             {user :user
              device :device} converted]
-        (swap! user-device update-in [5] (fnil #(if (contains? % "dd") % (conj % "dd")) [])))
+        (swap! user-device update-in [user] (fnil #(if (contains? % device) % (conj % device)) [])))
     "subscribe"
       (println "Subscribed to" channel)))
 
