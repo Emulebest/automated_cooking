@@ -33,14 +33,20 @@
   ())
 
 (defn handle-redis-msg
-  [msg-type channel msg]
+  [msg-type channel msg user-device]
   (case msg-type
-    "message" (println (convert-msg msg))
-    "subscribe" (println "Subscribed to" channel)))
+    "message"
+      (let [converted (convert-msg msg)
+            {user :user
+             device :device} converted]
+        (swap! user-device update-in [5] (fnil #(if (contains? % "dd") % (conj % "dd")) [])))
+    "subscribe"
+      (println "Subscribed to" channel)))
 
 (defn handle-mqtt-msg
   [topic payload]
-  (println "Got msg" payload "In topic" topic))
+  (do
+    (println "Got msg" payload "In topic" topic)))
 
 (defn -main
   "I don't do a whole lot."
@@ -49,10 +55,11 @@
         c1 (chan)
         c2 (chan)
         listener (get-msg "sous-vide" server1-conn c1)
-        mqtt_conn (mqtt-sub "tcp://mosquitto:1883" ["tp:1" "tp:2"] c2)]
+        mqtt_conn (mqtt-sub "tcp://mosquitto:1883" ["tp:1" "tp:2"] c2)
+        user-device (atom {})]
     (go-loop []
       (alt!
-        c1 ([[msg-type channel msg]] (handle-redis-msg msg-type channel msg))
+        c1 ([[msg-type channel msg]] (handle-redis-msg msg-type channel msg user-device))
         c2 ([[topic payload]] (handle-mqtt-msg topic payload)))
       (recur)))
   )
