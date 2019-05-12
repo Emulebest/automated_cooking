@@ -22,12 +22,20 @@
                                           (go (>! ch [topic (String. payload)]))))
       mqtt-conn)))
 
+(defn convert-msg
+  [msg]
+  (try
+    (json/read-str msg :key-fn keyword)
+    (catch Exception e (println (str "Got exception while parsing json " (.toString e))))))
+
+(defn process-msg
+  [msg users]
+  ())
+
 (defn handle-redis-msg
   [msg-type channel msg]
   (case msg-type
-    "message" (println (try
-                         (json/read-str msg)
-                         (catch Exception e (println (str "Got exception while parsing json " (.toString e))))))
+    "message" (println (convert-msg msg))
     "subscribe" (println "Subscribed to" channel)))
 
 (defn handle-mqtt-msg
