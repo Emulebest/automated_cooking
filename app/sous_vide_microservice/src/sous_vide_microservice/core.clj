@@ -41,18 +41,36 @@
       first
       empty?))
 
+(defn write-command
+  [topic command ch]
+  (go
+    (>! ch [topic (json/write-str {"command" command})])))
+
+
+(defn replace-device
+  [topic devices temp]
+  (reduce (fn [acc item]
+            (if (= (:topic item) topic)
+              (conj acc (.Device topic temp))
+              (conj acc item)))
+          [] devices))
+
 (defn handle-redis-msg
-  [msg-type channel msg user-device]
+  [msg-type channel msg user-device mqtt-pub]
   (case msg-type
     "message"
     (let [converted (convert-msg msg)
           {user  :user
            topic :topic
-           type  :type} converted
-          new-device (.Device topic 40)]
+           type  :type} converted]
       (case type
         "connect"
-        (swap! user-device update-in [user] (fnil #(if (devices-contain? topic %) % (conj % new-device)) []))))
+        (do
+          (swap! user-device update-in [user] (fnil #(if (devices-contain? topic %) % (conj % (.Device topic 40))) []))
+          (go (>! mqtt-pub (write-command topic "connect" mqtt-pub))))
+        "set_temp"
+        (do
+          (swap! user-device update-in [user] #(replace-device topic % (:temp converted))))))
     "subscribe"
     (println "Subscribed to" channel)))
 
@@ -64,11 +82,6 @@
                                                    first)]
                              (if (not (nil? target-device)) (conj acc [k v]) acc)))
                          [] @user-device)))
-
-(defn write-command
-  [topic command ch]
-  (go
-    (>! ch [topic (json/write-str {"command" command})])))
 
 (defn process-mqtt-temp
   ([ch msg topic]
@@ -84,7 +97,7 @@
 
 (defn send-redis-temp
   ([ch msg topic user]
-   (go (>! ch (json/write-str {"user" user, "topic" topic, "temp" (:temp msg)})))))
+   (go (>! ch (json/write-str {"user" user, "topic" topic, "type" "show-temp", "temp" (:temp msg)})))))
 
 (defn handle-mqtt-msg
   [topic payload user-device mqtt-pub-chan redis-pub-chan]
@@ -96,22 +109,26 @@
         (or (nil? user) (nil? device)) (process-mqtt-temp mqtt-pub-chan msg topic)
         :else (do
                 (process-mqtt-temp mqtt-pub-chan msg topic (:temp device))
-                (send-redis-temp redis-pub-chan msg topic user))))))
+                (send-redis-temp redis-pub-chan msg topic user)))
+      "connected"
+      (go (>! redis-pub-chan (json/write-str {"user" user, "topic" topic, "type" "connected"})))
+      )))
 
 (defn -main
   "I don't do a whole lot."
   [& args]
   (let [server1-conn {:pool {} :spec {:uri "redis://redis:6379"}}
+        initial-devices ["tp:1" "tp:2"]
         redis-sub (chan)
         mqtt-sub (chan)
         mqtt-pub (chan)
         redis-pub (chan)
-        redis-listener (get-msg "sous-vide" server1-conn redis-sub)
-        mqtt_conn (mqtt-subscribe "tcp://mosquitto:1883" ["tp:1" "tp:2"] mqtt-sub)
+        _ (get-msg "sous-vide" server1-conn redis-sub)
+        mqtt_conn (mqtt-subscribe "tcp://mosquitto:1883" initial-devices mqtt-sub)
         user-device (atom {})]
     (go-loop []
       (alt!
-        redis-sub ([[msg-type channel msg]] (handle-redis-msg msg-type channel msg user-device))
+        redis-sub ([[msg-type channel msg]] (handle-redis-msg msg-type channel msg user-device mqtt-pub))
         mqtt-sub ([[topic payload]] (handle-mqtt-msg topic payload user-device mqtt-pub redis-pub))
         mqtt-pub ([[topic payload]] (mh/publish mqtt_conn topic payload))
         redis-pub ([payload] (car/wcar server1-conn (car/publish "sous-vide" payload))))
