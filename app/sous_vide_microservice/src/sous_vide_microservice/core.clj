@@ -1,5 +1,5 @@
 (ns sous-vide-microservice.core
-  (:require [taoensso.carmine :as car :refer (wcar*)]
+  (:require [taoensso.carmine :as car]
             [clojure.core.async :as a :refer [>! <! >!! <!! go chan buffer close! thread
                                               alts! alts!! timeout go-loop alt!]]
             [clojure.data.json :as json]
