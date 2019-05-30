@@ -121,6 +121,7 @@
   "I don't do a whole lot."
   [& args]
   (let [server1-conn {:pool {} :spec {:uri "redis://redis:6379"}}
+        ;; TODO: This totally needs rework
         initial-devices [{:id 1, :topics ["test/temp" "keyUp"]}]
         redis-sub (chan)
         mqtt-sub (chan)
