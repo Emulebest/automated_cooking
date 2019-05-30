@@ -7,6 +7,9 @@
 
 (defrecord Device [topic temp])
 
+(defn parse-int [s]
+  (Integer/parseInt (re-find #"\A-?\d+" s)))
+
 (defn get-msg
   [topic conn ch]
   (car/with-new-pubsub-listener
@@ -27,8 +30,8 @@
 (defn convert-msg
   [msg]
   (try
-    (json/read-str msg :key-fn keyword)
-    (catch Exception e (println (str "Got exception while parsing json " (.toString e))))))
+    (parse-int msg)
+    (catch Exception e (println (str "Got exception while parsing mqtt msg " (.toString e))))))
 
 
 (defn filter-device
@@ -65,9 +68,7 @@
            type  :type} converted]
       (case type
         "connect"
-        (do
-          (swap! user-device update-in [user] (fnil #(if (devices-contain? topic %) % (conj % (.Device topic 40))) []))
-          (go (>! mqtt-pub (write-command topic "connect" mqtt-pub))))
+        (swap! user-device update-in [user] (fnil #(if (devices-contain? topic %) % (conj % (.Device topic 40))) []))
         "set_temp"
         (do
           (swap! user-device update-in [user] #(replace-device topic % (:temp converted))))))
@@ -85,15 +86,15 @@
 
 (defn process-mqtt-temp
   ([ch msg topic]
-   (let [temp (:temp msg)]
+   (let [temp msg]
      (cond
-       (< temp 40.1) (write-command topic "on" ch)
-       (> temp 40.5) (write-command topic "off" ch))))
+       (< temp 40.1) (write-command topic 1 ch)
+       (> temp 40.5) (write-command topic 0 ch))))
   ([ch msg topic temp-set]
-   (let [temp (:temp msg)]
+   (let [temp msg]
      (cond
-       (< temp (+ temp-set 0.1)) (write-command topic "on" ch)
-       (> temp (+ temp-set 0.5)) (write-command topic "off" ch)))))
+       (< temp (+ temp-set 0.1)) (write-command topic 1 ch)
+       (> temp (+ temp-set 0.5)) (write-command topic 0 ch)))))
 
 (defn send-redis-temp
   ([ch msg topic user]
@@ -103,22 +104,24 @@
   [topic payload user-device mqtt-pub-chan redis-pub-chan]
   (let [msg (convert-msg payload)
         [user device] (find-device-user topic user-device)]
-    (case (:type msg)
-      "temp"
+    (case (topic)
+      "test/temp"
       (cond
         (or (nil? user) (nil? device)) (process-mqtt-temp mqtt-pub-chan msg topic)
         :else (do
-                (process-mqtt-temp mqtt-pub-chan msg topic (:temp device))
+                (process-mqtt-temp mqtt-pub-chan msg "device_ctl" (:temp device))
                 (send-redis-temp redis-pub-chan msg topic user)))
-      "connected"
-      (go (>! redis-pub-chan (json/write-str {"user" user, "topic" topic, "type" "connected"})))
+      "keyUp"
+      (case msg
+        1 (go (>! redis-pub-chan (json/write-str {"user" user, "topic" topic, "type" "connected"})))
+        0 ())
       )))
 
 (defn -main
   "I don't do a whole lot."
   [& args]
   (let [server1-conn {:pool {} :spec {:uri "redis://redis:6379"}}
-        initial-devices ["tp:1" "tp:2"]
+        initial-devices [{:id 1, :topics ["test/temp" "keyUp"]}]
         redis-sub (chan)
         mqtt-sub (chan)
         mqtt-pub (chan)
