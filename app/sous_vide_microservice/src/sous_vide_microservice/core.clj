@@ -5,7 +5,7 @@
             [clojure.data.json :as json]
             [clojurewerkz.machine-head.client :as mh]))
 
-(defrecord Device [topic temp])
+(defrecord Device [id user topics temp])
 
 (defn parse-int [s]
   (Integer/parseInt (re-find #"\A-?\d+" s)))
@@ -19,9 +19,16 @@
                        (go (>! ch msg))))}
     (car/subscribe topic)))
 
+(defn devices-topics
+  [devices]
+  (reduce-kv (fn [m _ v]
+               (concat (:topics v) m))
+             [] @devices))
+
 (defn mqtt-subscribe
-  [addr topics ch]
-  (let [mqtt-conn (mh/connect addr)]
+  [addr devices ch]
+  (let [mqtt-conn (mh/connect addr)
+        topics (devices-topics devices)]
     (doseq [topic topics]
       (mh/subscribe mqtt-conn {topic 0} (fn [^String topic _ ^bytes payload]
                                           (go (>! ch [topic (String. payload)]))))
@@ -75,14 +82,11 @@
     "subscribe"
     (println "Subscribed to" channel)))
 
-(defn find-device-user
-  [^String device-topic user-device]
-  (comp first (reduce-kv (fn [acc k v]
-                           (let [filtered-records (filter-device device-topic v)
-                                 target-device (-> filtered-records
-                                                   first)]
-                             (if (not (nil? target-device)) (conj acc [k v]) acc)))
-                         [] @user-device)))
+(defn find-device
+  [device-topic devices]
+  (for [value (vals @devices)
+        :when (contains? (into #{} (:topics value)) device-topic)]
+    value))
 
 (defn process-mqtt-temp
   ([ch msg topic]
@@ -103,7 +107,7 @@
 (defn handle-mqtt-msg
   [topic payload user-device mqtt-pub-chan redis-pub-chan]
   (let [msg (convert-msg payload)
-        [user device] (find-device-user topic user-device)]
+        [device] (find-device topic user-device)]
     (case (topic)
       "test/temp"
       (cond
@@ -122,18 +126,17 @@
   [& args]
   (let [server1-conn {:pool {} :spec {:uri "redis://redis:6379"}}
         ;; TODO: This totally needs rework
-        initial-devices [{:id 1, :topics ["test/temp" "keyUp"]}]
+        devices (atom {0 (Device. 0 99999 ["test/temp" "keyUp"] 40)})
         redis-sub (chan)
         mqtt-sub (chan)
         mqtt-pub (chan)
         redis-pub (chan)
         _ (get-msg "sous-vide" server1-conn redis-sub)
-        mqtt_conn (mqtt-subscribe "tcp://mosquitto:1883" initial-devices mqtt-sub)
-        user-device (atom {})]
+        mqtt_conn (mqtt-subscribe "tcp://mosquitto:1883" devices mqtt-sub)]
     (go-loop []
       (alt!
-        redis-sub ([[msg-type channel msg]] (handle-redis-msg msg-type channel msg user-device mqtt-pub))
-        mqtt-sub ([[topic payload]] (handle-mqtt-msg topic payload user-device mqtt-pub redis-pub))
+        redis-sub ([[msg-type channel msg]] (handle-redis-msg msg-type channel msg devices mqtt-pub))
+        mqtt-sub ([[topic payload]] (handle-mqtt-msg topic payload devices mqtt-pub redis-pub))
         mqtt-pub ([[topic payload]] (mh/publish mqtt_conn topic payload))
         redis-pub ([payload] (car/wcar server1-conn (car/publish "sous-vide" payload))))
       (recur)))
