@@ -14,9 +14,8 @@
   [topic conn ch]
   (car/with-new-pubsub-listener
     (:spec conn)
-    {topic (fn [msg] (do
-                       (println "Got " msg)
-                       (go (>! ch msg))))}
+    {topic (fn [msg]
+             (go (>! ch msg)))}
     (car/subscribe topic)))
 
 (defn devices-topics
@@ -31,8 +30,14 @@
         topics (devices-topics devices)]
     (doseq [topic topics]
       (mh/subscribe mqtt-conn {topic 0} (fn [^String topic _ ^bytes payload]
-                                          (go (>! ch [topic (String. payload)]))))
-      mqtt-conn)))
+                                          (go (>! ch [topic (String. payload)])))))
+    mqtt-conn))
+
+(defn parse-msg
+  [msg]
+  (try
+    (json/read-str msg :key-fn keyword)
+    (catch Exception e (println e))))
 
 (defn convert-msg
   [msg]
@@ -40,84 +45,58 @@
     (parse-int msg)
     (catch Exception e (println (str "Got exception while parsing mqtt msg " (.toString e))))))
 
-
-(defn filter-device
-  [topic devices]
-  (filter #(= topic (:topic %)) devices))
-
-(defn devices-contain?
-  [topic devices]
-  (-> (filter-device topic devices)
-      first
-      empty?))
-
 (defn write-command
   [topic command ch]
   (go
-    (>! ch [topic (json/write-str {"command" command})])))
-
-
-(defn replace-device
-  [topic devices temp]
-  (reduce (fn [acc item]
-            (if (= (:topic item) topic)
-              (conj acc (.Device topic temp))
-              (conj acc item)))
-          [] devices))
+    (>! ch [topic command])))
 
 (defn handle-redis-msg
   [msg-type channel msg user-device mqtt-pub]
   (case msg-type
     "message"
-    (let [converted (convert-msg msg)
+    (let [converted (parse-msg msg)
           {user  :user
-           topic :topic
+           device :device
            type  :type} converted]
       (case type
         "connect"
-        (swap! user-device update-in [user] (fnil #(if (devices-contain? topic %) % (conj % (.Device topic 40))) []))
+        (swap! user-device update-in [device] #(assoc % :user user))
         "set_temp"
-        (do
-          (swap! user-device update-in [user] #(replace-device topic % (:temp converted))))))
+        (swap! user-device update-in [device] #(assoc % :temp (:temp converted)))
+        "default"))
     "subscribe"
     (println "Subscribed to" channel)))
 
 (defn find-device
   [device-topic devices]
-  (for [value (vals @devices)
-        :when (contains? (into #{} (:topics value)) device-topic)]
-    value))
+  (let [values (vals @devices)]
+    (first (filter #(contains? (into #{} (:topics %)) device-topic) values))))
 
 (defn process-mqtt-temp
-  ([ch msg topic]
-   (let [temp msg]
-     (cond
-       (< temp 40.1) (write-command topic 1 ch)
-       (> temp 40.5) (write-command topic 0 ch))))
-  ([ch msg topic temp-set]
-   (let [temp msg]
-     (cond
-       (< temp (+ temp-set 0.1)) (write-command topic 1 ch)
-       (> temp (+ temp-set 0.5)) (write-command topic 0 ch)))))
+  [ch msg topic temp-set]
+  (let [temp msg]
+    (cond
+      (< temp (+ temp-set 0.1)) (write-command topic "1" ch)
+      (> temp (+ temp-set 0.5)) (write-command topic "0" ch))))
 
 (defn send-redis-temp
   ([ch msg topic user]
-   (go (>! ch (json/write-str {"user" user, "topic" topic, "type" "show-temp", "temp" (:temp msg)})))))
+   (go (>! ch (json/write-str {"user" user, "topic" topic, "type" "show-temp", "temp" msg})))))
 
 (defn handle-mqtt-msg
   [topic payload user-device mqtt-pub-chan redis-pub-chan]
   (let [msg (convert-msg payload)
-        [device] (find-device topic user-device)]
-    (case (topic)
+        device (find-device topic user-device)]
+    (case topic
       "test/temp"
       (cond
-        (or (nil? user) (nil? device)) (process-mqtt-temp mqtt-pub-chan msg topic)
+        (= (:user device) 99999) (process-mqtt-temp mqtt-pub-chan msg "device_ctl" (:temp device))
         :else (do
                 (process-mqtt-temp mqtt-pub-chan msg "device_ctl" (:temp device))
-                (send-redis-temp redis-pub-chan msg topic user)))
+                (send-redis-temp redis-pub-chan msg topic (:user device))))
       "keyUp"
       (case msg
-        1 (go (>! redis-pub-chan (json/write-str {"user" user, "topic" topic, "type" "connected"})))
+        1 (go (>! redis-pub-chan (json/write-str {"user" (:user device), "device" (:id device), "type" "connected"})))
         0 ())
       )))
 
