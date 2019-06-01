@@ -59,7 +59,10 @@ services:
     depends_on:
       - redis
       - mosquitto
-    command: lein run
+    ports:
+      - "7888:7888"
+    command: /bin/bash -c "lein test && lein run"
+#    command: lein repl :headless :host 0.0.0.0 :port 7888
 
   redis:
     image: redis:latest

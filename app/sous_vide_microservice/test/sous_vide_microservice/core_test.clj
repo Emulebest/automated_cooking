@@ -37,21 +37,73 @@
         (is (= (:device msg) 0))))))
 
 (deftest temp-test
-  (testing "Connect-device"
+  (testing "Test temperature"
     (let [redis-sub (chan)
           mqtt-sub (chan)
-          devices (atom {0 (Device. 0 99999 ["test/temp" "keyUp"] 40)})
+          devices (atom {0 (Device. 0 99999 ["test/temp" "keyUp" "device_ctl"] 40)})
           _ (get-msg "sous-vide" server1-conn redis-sub)
           mqtt_conn (mqtt-subscribe "tcp://mosquitto:1883" devices mqtt-sub)]
       (do
         (car/wcar server1-conn (car/publish "sous-vide" (json/write-str {"user" 1, "device" 0, "type" "connect"})))
         (mh/publish mqtt_conn "keyUp" "1")
-        (mh/publish mqtt_conn "test/temp" "42")
-        )
-      (let [_ (doseq [x (range 3)]
+        (mh/publish mqtt_conn "test/temp" "42"))
+      (let [_ (dotimes [_ 3]
                 (println (<!! redis-sub)))
             [_ _ msg] (<!! redis-sub)
-            msg (parse-msg msg)]
+            msg (parse-msg msg)
+            _ (dotimes [_ 2]
+                (println (<!! mqtt-sub)))
+            [topic payload] (<!! mqtt-sub)]
+        (println "Overheating 42")
         (println "Finally got in temp-test " msg)
         (is (= (:type msg) "show-temp"))
-        (is (= (:temp msg) 42))))))
+        (is (= (:temp msg) 42))
+        (is (= topic "device_ctl"))
+        (is (= payload "0"))
+        )
+      (mh/publish mqtt_conn "test/temp" "38")
+      (let [_ (dotimes [_ 1] (println (<!! mqtt-sub)))
+            [topic payload] (<!! mqtt-sub)]
+        (println "Temperature is falling to 38")
+        (println "Got topic " topic "Payload " payload)
+        (is (= topic "device_ctl"))
+        (is (= payload "1")))))
+
+  (testing "Test setting temp"
+    (let [redis-sub (chan)
+          mqtt-sub (chan)
+          devices (atom {0 (Device. 0 99999 ["test/temp" "keyUp" "device_ctl"] 40)})
+          _ (get-msg "sous-vide" server1-conn redis-sub)
+          mqtt_conn (mqtt-subscribe "tcp://mosquitto:1883" devices mqtt-sub)]
+      (do
+        (car/wcar server1-conn (car/publish "sous-vide" (json/write-str {"user" 1, "device" 0, "type" "connect"})))
+        (mh/publish mqtt_conn "keyUp" "1")
+        (car/wcar server1-conn (car/publish "sous-vide" (json/write-str {"user" 1, "device" 0, "type" "set_temp", "temp" 70})))
+        (mh/publish mqtt_conn "test/temp" "42"))
+      (let [_ (dotimes [_ 4]
+                (println (<!! redis-sub)))
+            [_ _ msg] (<!! redis-sub)
+            msg (parse-msg msg)
+            _ (dotimes [_ 2]
+                (println (<!! mqtt-sub)))
+            [topic payload] (<!! mqtt-sub)]
+        (println "Finally got in temp-test " msg)
+        (is (= (:type msg) "show-temp"))
+        (is (= (:temp msg) 42))
+        (is (= topic "device_ctl"))
+        (is (= payload "1"))
+        )
+      (mh/publish mqtt_conn "test/temp" "69")
+      (let [_ (dotimes [_ 1] (println (<!! mqtt-sub)))
+            [topic payload] (<!! mqtt-sub)]
+        (println "Temperature is 69, nearly 70")
+        (println "Got topic " topic "Payload " payload)
+        (is (= topic "device_ctl"))
+        (is (= payload "1")))
+      (mh/publish mqtt_conn "test/temp" "71")
+      (let [_ (dotimes [_ 1] (println (<!! mqtt-sub)))
+            [topic payload] (<!! mqtt-sub)]
+        (println "Temperature is 71, overheating")
+        (println "Got topic " topic "Payload " payload)
+        (is (= topic "device_ctl"))
+        (is (= payload "0"))))))
