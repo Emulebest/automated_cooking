@@ -49,46 +49,79 @@ class DeviceManager:
 
     async def receive_update(self):
         connection = DeviceManager.find_connection(self.user, self.device_id)
+        if connection is None:
+            print(f"Couldn't find connection on this process {connections}")
+            return
+
         if self.msg_type == "show_temp":
             if connection is None:
                 raise Exception("Unable to perform update on selected device, it couldn't be found")
             await connection.send_json(
                 {"type": self.msg_type, "device": self.device_id, "temp": self.extra["temp"]})
+
         elif self.msg_type == "connected":
             query = devices.update().where(devices.c.user == self.user).values(connected=True)
             await database.execute(query)
             await connection.send_json(
                 {"type": self.msg_type, "device": self.device_id}
             )
+            pub.publish_json('connections',
+                             {"user": self.user, "device": self.device_id, "device_delta": {"connected": True}})
 
     async def perform_update(self):
-        connection = DeviceManager.find_connection(self.user, self.device_id)
+
         if self.msg_type == "connect":
-            pub.publish_json({"type": self.msg_type, "device": self.device_id, "user": self.user})
-            # TODO: left it here
+            pub.publish_json('sous-vide', {"type": self.msg_type, "device": self.device_id, "user": self.user})
+
+        elif self.msg_type == "set_temp":
+            if self.extra["temp"] == 0:
+                print(f"Setting device {self.device_id} to off")
+                query = devices.update().where(devices.c.user == self.user).values(status="off")
+                await database.execute(query)
+                pub.publish_json('connections',
+                                 {"user": self.user, "device": self.device_id, "device_delta": {"status": "off"}})
+            pub.publish_json('sous-vide', {"type": self.msg_type, "device": self.device_id, "user": self.user,
+                                           "temp": self.extra["temp"]})
 
 
 async def reader(mpsc: Receiver):
     async for channel, msg in mpsc.iter():
         assert isinstance(channel, AbcChannel)
+
         if channel.name == b"connections":
-            msg = msg.decode("utf-8").replace("'", '"')
-            redis_msg = json.loads(msg)
-            user = redis_msg["user"]
-            device = redis_msg["device"]
-            device = json.loads(device)
-            dv: Device = Device(**device)
-            add_device(user, dv)
+            try:
+                msg = msg.decode("utf-8").replace("'", '"')
+                redis_msg = json.loads(msg)
+
+                user = redis_msg["user"]
+
+                if redis_msg.get("device_delta", None) is not None:
+                    device_delta = redis_msg["device_delta"]
+                    device_id = redis_msg["device"]
+                    edit_device(user, device_id, **device_delta)
+                    continue
+
+                device = redis_msg["device"]
+                device = json.loads(device)
+                dv: Device = Device(**device)
+                add_device(user, dv)
+            except Exception as e:
+                print(e, flush=True)
+
         elif channel.name == b"sous-vide":
-            msg = msg.decode("utf-8").replace("'", '"')
-            redis_msg = json.loads(msg)
-            user = redis_msg.get("user", None)
-            device_id = redis_msg.get("device", None)
-            msg_type = redis_msg.get("type", None)
-            if user is None or device_id is None or msg_type is None:
-                raise Exception(f"Corrupted response from redis {redis_msg}")
-            update_manager = DeviceManager(user, device_id, msg_type, redis_msg)
-            await update_manager.receive_update()
+            try:
+                msg = msg.decode("utf-8").replace("'", '"')
+                redis_msg = json.loads(msg)
+                user = redis_msg.get("user", None)
+                device_id = redis_msg.get("device", None)
+                msg_type = redis_msg.get("type", None)
+
+                if user is None or device_id is None or msg_type is None:
+                    raise Exception(f"Corrupted response from redis {redis_msg}")
+                update_manager = DeviceManager(user, device_id, msg_type, redis_msg)
+                await update_manager.receive_update()
+            except Exception as e:
+                print(e, flush=True)
         print(f"Got {msg} in channel {channel}", flush=True)
 
 
@@ -120,13 +153,13 @@ async def read_devices(request: Request):
 
 @app.post("/devices/", response_model=Device, status_code=201)
 async def create_device(request: Request, device: DeviceRequest):
-    query = devices.insert().values(description=device.description, status=device.status,
-                                    user=request.user.display_name)
+    query = devices.insert().values(description=device.description, status="off",
+                                    user=request.user.display_name, connected=False)
     record_id = await database.execute(query)
-    dv: Device = Device(id=record_id, description=device.description, status=device.status,
-                        user=request.user.display_name)
+    dv: Device = Device(id=record_id, description=device.description, status="off",
+                        user=request.user.display_name, connected=False)
     pub.publish_json('connections', {"user": request.user.display_name, "device": dv.json()})
-    return {**device.dict(), "id": record_id}
+    return {**dv.dict(), "id": record_id}
 
 
 def add_device(user_id: int, device: Device) -> bool:
@@ -138,6 +171,16 @@ def add_device(user_id: int, device: Device) -> bool:
             user_devices.append(device)
             return True
     return False
+
+
+def edit_device(user_id: int, device_id: int, **kwargs):
+    for (user, connection, user_devices) in connections:
+        if user == user_id:
+            for i in range(len(user_devices)):
+                if device_id == user_devices[i].id:
+                    edited_device: Device = user_devices[i].copy(update=kwargs)
+                    print(edited_device, flush=True)
+                    user_devices[i] = edited_device
 
 
 def discard_connection(user_id: int):
@@ -161,8 +204,8 @@ async def websocket_endpoint(websocket: WebSocket):
         user_id = payload["user_id"]
         query = devices.select().where(devices.c.user == user_id)
         user_devices: List[Device] = []
-        for item in await database.fetch_all(query):
-            user_devices.append(Device(id=item[0], description=item[1], status=item[2], user=item[3]))
+        for dv in await database.fetch_all(query):
+            user_devices.append(Device(id=dv[0], description=dv[1], status=dv[2], user=dv[3], connected=dv[4]))
         connections.append((user_id, websocket, user_devices))
         while True:
             ws_msg = await websocket.receive_json()
@@ -170,10 +213,15 @@ async def websocket_endpoint(websocket: WebSocket):
             msg_type = ws_msg.get("type", None)
             device_id = ws_msg.get("device", None)
             if user is None or device_id is None or msg_type is None:
-                raise Exception(f"Corrupted response from websocket {ws_msg}")
+                raise Exception(f"Corrupted request from websocket {ws_msg}")
+            device_manager = DeviceManager(user_id, device_id, msg_type, ws_msg)
+            await device_manager.perform_update()
+
     except WebSocketDisconnect:
         discard_connection(user_id)
     except DecodeError as e:
-        print(e)
+        print(e, flush=True)
+    except Exception as e:
+        print(e, flush=True)
     finally:
         await websocket.close()

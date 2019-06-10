@@ -7,8 +7,10 @@ from settings import SECRET, ALGORITHM
 
 class BasicAuthBackend(AuthenticationBackend):
     async def authenticate(self, request):
-        if "Authorization" not in request.headers:
+        if request.url.path == "/ws":
             return
+        if "Authorization" not in request.headers:
+            raise AuthenticationError('No JWT token provided')
 
         auth = request.headers["Authorization"]
         try:

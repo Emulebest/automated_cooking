@@ -11,6 +11,7 @@ devices = sqlalchemy.Table(
     metadata,
     sqlalchemy.Column("id", sqlalchemy.Integer, primary_key=True),
     sqlalchemy.Column("description", sqlalchemy.String),
+    sqlalchemy.Column("status", sqlalchemy.String),
+    sqlalchemy.Column("user", sqlalchemy.Integer),
     sqlalchemy.Column("connected", sqlalchemy.Boolean),
-    sqlalchemy.Column("user", sqlalchemy.Integer)
 )
