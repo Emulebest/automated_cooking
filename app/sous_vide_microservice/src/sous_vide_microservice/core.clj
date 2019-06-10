@@ -80,8 +80,8 @@
       (> temp (+ temp-set 0.5)) (write-command topic "0" ch))))
 
 (defn send-redis-temp
-  ([ch msg topic user]
-   (go (>! ch (json/write-str {"user" user, "topic" topic, "type" "show-temp", "temp" msg})))))
+  ([ch msg device user]
+   (go (>! ch (json/write-str {"user" user, "device" device, "type" "show-temp", "temp" msg})))))
 
 (defn handle-mqtt-msg
   [topic payload user-device mqtt-pub-chan redis-pub-chan]
@@ -93,7 +93,7 @@
         (= (:user device) 99999) (process-mqtt-temp mqtt-pub-chan msg "device_ctl" (:temp device))
         :else (do
                 (process-mqtt-temp mqtt-pub-chan msg "device_ctl" (:temp device))
-                (send-redis-temp redis-pub-chan msg topic (:user device))))
+                (send-redis-temp redis-pub-chan msg (:id device) (:user device))))
       "keyUp"
       (case msg
         1 (go (>! redis-pub-chan (json/write-str {"user" (:user device), "device" (:id device), "type" "connected"})))
@@ -104,7 +104,6 @@
   "I don't do a whole lot."
   [& args]
   (let [server1-conn {:pool {} :spec {:uri "redis://redis:6379"}}
-        ;; TODO: This totally needs rework
         devices (atom {0 (Device. 0 99999 ["test/temp" "keyUp"] 40)})
         redis-sub (chan)
         mqtt-sub (chan)

@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Optional
 
 import databases
 import jwt
@@ -31,26 +31,64 @@ database = databases.Database(DATABASE_URL)
 connections: List[Tuple[int, WebSocket, List[Device]]] = []
 
 
+class DeviceManager:
+    def __init__(self, user: int, device_id: int, msg_type: str, extra: Dict):
+        self.user = user
+        self.device_id = device_id
+        self.msg_type = msg_type
+        self.extra = extra
+
+    @staticmethod
+    def find_connection(user_id: int, device_id: int) -> Optional[WebSocket]:
+        for (user, connection, user_devices) in connections:
+            if user == user_id:
+                for dv in user_devices:
+                    if device_id == dv.id:
+                        return connection
+        return None
+
+    async def receive_update(self):
+        connection = DeviceManager.find_connection(self.user, self.device_id)
+        if self.msg_type == "show_temp":
+            if connection is None:
+                raise Exception("Unable to perform update on selected device, it couldn't be found")
+            await connection.send_json(
+                {"type": self.msg_type, "device": self.device_id, "temp": self.extra["temp"]})
+        elif self.msg_type == "connected":
+            query = devices.update().where(devices.c.user == self.user).values(connected=True)
+            await database.execute(query)
+            await connection.send_json(
+                {"type": self.msg_type, "device": self.device_id}
+            )
+
+    async def perform_update(self):
+        connection = DeviceManager.find_connection(self.user, self.device_id)
+        if self.msg_type == "connect":
+            pub.publish_json({"type": self.msg_type, "device": self.device_id, "user": self.user})
+            # TODO: left it here
+
+
 async def reader(mpsc: Receiver):
     async for channel, msg in mpsc.iter():
         assert isinstance(channel, AbcChannel)
         if channel.name == b"connections":
             msg = msg.decode("utf-8").replace("'", '"')
-            new_item = json.loads(msg)
-            user = new_item["user"]
-            device = new_item["device"]
+            redis_msg = json.loads(msg)
+            user = redis_msg["user"]
+            device = redis_msg["device"]
             device = json.loads(device)
             dv: Device = Device(**device)
             add_device(user, dv)
         elif channel.name == b"sous-vide":
             msg = msg.decode("utf-8").replace("'", '"')
-            new_item = json.loads(msg)
-            user = new_item.pop("user", None)
-            if user is None:
-                print("User not found in response from Sous-Vide microservice", flush=True)
-            query = devices.update().where(devices.c.user == user).values(status=new_item["status"])
-            await database.execute(query)
-            await send_device_update(user, new_item)
+            redis_msg = json.loads(msg)
+            user = redis_msg.get("user", None)
+            device_id = redis_msg.get("device", None)
+            msg_type = redis_msg.get("type", None)
+            if user is None or device_id is None or msg_type is None:
+                raise Exception(f"Corrupted response from redis {redis_msg}")
+            update_manager = DeviceManager(user, device_id, msg_type, redis_msg)
+            await update_manager.receive_update()
         print(f"Got {msg} in channel {channel}", flush=True)
 
 
@@ -109,12 +147,6 @@ def discard_connection(user_id: int):
             connections.pop(i)
 
 
-async def send_device_update(user_id: int, update):
-    for (user, connection, user_devices) in connections:
-        if user == user_id:
-            await connection.send_json(update)
-
-
 @app.get("/test")
 async def root():
     return {"message": "Hello World"}
@@ -133,7 +165,12 @@ async def websocket_endpoint(websocket: WebSocket):
             user_devices.append(Device(id=item[0], description=item[1], status=item[2], user=item[3]))
         connections.append((user_id, websocket, user_devices))
         while True:
-            await websocket.receive_json()
+            ws_msg = await websocket.receive_json()
+            user = user_id
+            msg_type = ws_msg.get("type", None)
+            device_id = ws_msg.get("device", None)
+            if user is None or device_id is None or msg_type is None:
+                raise Exception(f"Corrupted response from websocket {ws_msg}")
     except WebSocketDisconnect:
         discard_connection(user_id)
     except DecodeError as e:
