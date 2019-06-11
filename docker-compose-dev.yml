@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: admin
 
   frontend:
-    image: node:8
+    image: node:10
     working_dir: /app
     volumes:
       - "./app/frontend:/app"
