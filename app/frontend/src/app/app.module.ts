@@ -20,7 +20,7 @@ import {
   MatCardModule,
   MatDialogModule, MatGridListModule, MatIconModule,
   MatInputModule,
-  MatMenuModule, MatProgressSpinnerModule,
+  MatMenuModule, MatProgressSpinnerModule, MatStepperModule,
   MatTableModule,
   MatToolbarModule
 } from '@angular/material';
@@ -28,6 +28,11 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import { NavbarComponent } from './navbar/navbar.component';
 import { DeviceComponent } from './device/device.component';
 import { DeviceListComponent } from './device-list/device-list.component';
+import {DeviceService} from './_services/device.service';
+import {WebsocketService} from './_services/websocket.service';
+import {NotificationService} from './_services/notification.service';
+import { DeviceControlComponent } from './device-control/device-control.component';
+import { CreateDeviceDialogComponent } from './create-device-dialog/create-device-dialog.component';
 
 @NgModule({
   declarations: [
@@ -39,6 +44,8 @@ import { DeviceListComponent } from './device-list/device-list.component';
     NavbarComponent,
     DeviceComponent,
     DeviceListComponent,
+    DeviceControlComponent,
+    CreateDeviceDialogComponent,
   ],
   imports: [
     BrowserModule,
@@ -46,24 +53,31 @@ import { DeviceListComponent } from './device-list/device-list.component';
     AppRoutingModule,
     HttpClientModule,
     ReactiveFormsModule,
-    // MatToolbarModule,
+    MatToolbarModule,
     MatButtonModule,
     MatCardModule,
-    MatGridListModule
-    // MatInputModule,
-    // MatDialogModule,
-    // MatTableModule,
-    // MatMenuModule,
-    // MatIconModule,
-    // MatProgressSpinnerModule
+    MatGridListModule,
+    MatInputModule,
+    MatDialogModule,
+    MatTableModule,
+    MatMenuModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatStepperModule
   ],
   providers: [
     AuthGuard,
     AlertService,
     AuthService,
+    DeviceService,
+    WebsocketService,
+    NotificationService,
     {provide: HTTP_INTERCEPTORS, useClass: JwtInterceptor, multi: true},
     {provide: HTTP_INTERCEPTORS, useClass: ErrorInterceptor, multi: true},
 
+  ],
+  entryComponents: [
+    CreateDeviceDialogComponent
   ],
   bootstrap: [AppComponent]
 })

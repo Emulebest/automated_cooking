@@ -1,4 +1,5 @@
 export interface Message {
-  author: string;
-  message: string;
+  type: string;
+  device: number;
+  temp?: number;
 }

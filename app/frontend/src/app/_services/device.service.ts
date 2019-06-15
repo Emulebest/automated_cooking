@@ -2,13 +2,14 @@ import {Injectable} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {Device} from '../_models/device';
 import {environment} from '../../environments/environment';
-import {map} from 'rxjs/operators';
-import {Observable} from 'rxjs';
+import {Observable, Subject} from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DeviceService {
+
+  newDeviceCreated: Subject<Device> = new Subject<Device>();
 
   constructor(private http: HttpClient) {
 
@@ -22,5 +23,9 @@ export class DeviceService {
 
   readDevices(): Observable<Device[]> {
     return this.http.get<Device[]>(`${environment.deviceUrl}/devices/`);
+  }
+
+  inputNewDevice(device: Device) {
+    this.newDeviceCreated.next(device);
   }
 }

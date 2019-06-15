@@ -3,4 +3,5 @@ export interface Device {
   description: string;
   status: number;
   connected: boolean;
+  temp: number;
 }

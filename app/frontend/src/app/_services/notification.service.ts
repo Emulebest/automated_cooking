@@ -17,8 +17,9 @@ export class NotificationService {
       map((response: MessageEvent): Message => {
         const data = JSON.parse(response.data);
         return {
-          author: data.author,
-          message: data.message
+          type: data.type,
+          device: data.device,
+          temp: data.temp
         };
       })
     );

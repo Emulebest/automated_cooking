@@ -1,5 +1,5 @@
-import {Component, OnInit} from '@angular/core';
-import {NotificationService} from '../_services/notification.service';
+import {Component, Input, OnInit} from '@angular/core';
+import {Device} from '../_models/device';
 
 @Component({
   selector: 'app-device',
@@ -8,12 +8,10 @@ import {NotificationService} from '../_services/notification.service';
 })
 export class DeviceComponent implements OnInit {
 
-  // constructor(private notificationService: NotificationService) {
-  //   this.notificationService.messages.subscribe(msg => {
-  //
-  //   });
-  // }
-  constructor() {}
+  @Input() device: Device;
+
+  constructor() {
+  }
 
   ngOnInit() {
   }
