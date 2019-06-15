@@ -4,6 +4,7 @@ import {Observable, Subject} from 'rxjs';
 import {WebsocketService} from './websocket.service';
 import {map} from 'rxjs/operators';
 import {environment} from '../../environments/environment';
+import {AuthService} from './auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -11,8 +12,8 @@ import {environment} from '../../environments/environment';
 export class NotificationService {
   public messages: Observable<Message>;
 
-  constructor(wsService: WebsocketService) {
-    this.messages = wsService.connect(environment.wsUrl).pipe(
+  constructor(private wsService: WebsocketService, private authService: AuthService) {
+    this.messages = wsService.connect(`${environment.wsUrl}?token=${authService.token}`).pipe(
       map((response: MessageEvent): Message => {
         const data = JSON.parse(response.data);
         return {

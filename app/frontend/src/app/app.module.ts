@@ -18,7 +18,7 @@ import {ReactiveFormsModule} from '@angular/forms';
 import {
   MatButtonModule,
   MatCardModule,
-  MatDialogModule, MatIconModule,
+  MatDialogModule, MatGridListModule, MatIconModule,
   MatInputModule,
   MatMenuModule, MatProgressSpinnerModule,
   MatTableModule,
@@ -26,6 +26,8 @@ import {
 } from '@angular/material';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import { NavbarComponent } from './navbar/navbar.component';
+import { DeviceComponent } from './device/device.component';
+import { DeviceListComponent } from './device-list/device-list.component';
 
 @NgModule({
   declarations: [
@@ -35,6 +37,8 @@ import { NavbarComponent } from './navbar/navbar.component';
     AlertComponent,
     LoginComponent,
     NavbarComponent,
+    DeviceComponent,
+    DeviceListComponent,
   ],
   imports: [
     BrowserModule,
@@ -45,6 +49,7 @@ import { NavbarComponent } from './navbar/navbar.component';
     // MatToolbarModule,
     MatButtonModule,
     MatCardModule,
+    MatGridListModule
     // MatInputModule,
     // MatDialogModule,
     // MatTableModule,

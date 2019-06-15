@@ -37,6 +37,10 @@ export class AuthService {
       }));
   }
 
+  get token(): string {
+    return localStorage.getItem('currentUser');
+  }
+
   logout() {
     // remove user from local storage to log user out
     localStorage.removeItem('currentUser');

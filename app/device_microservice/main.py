@@ -17,8 +17,14 @@ from settings import create_redis, DATABASE_URL, SECRET, ALGORITHM
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import Request
 from starlette.websockets import WebSocket, WebSocketDisconnect
-
+from starlette.middleware.cors import CORSMiddleware
 app = FastAPI()
+app.add_middleware(CORSMiddleware,
+                   allow_origins=['*'],
+                   allow_credentials=True,
+                   allow_methods=["*"],
+                   allow_headers=["*"],
+                   )
 app.add_middleware(AuthenticationMiddleware, backend=BasicAuthBackend())
 
 pub: RedisConnection = None
