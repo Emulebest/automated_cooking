@@ -14,7 +14,7 @@ services:
     working_dir: /app
     volumes:
       - "./app/frontend:/app"
-    command: /bin/sh -c "npm install && npm install -g @angular/cli && ng serve --host 0.0.0.0"
+    command: /bin/sh -c "npm install && npm install -g @angular/cli && ng serve --host 0.0.0.0 --disable-host-check"
     ports:
       - "4200:4200"
 
