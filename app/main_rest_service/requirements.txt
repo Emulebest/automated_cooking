@@ -3,6 +3,7 @@ chardet==3.0.4
 defusedxml==0.6.0rc1
 Django==2.2
 django-braces==1.13.0
+django-cors-headers==3.0.2
 django-oauth-toolkit==1.2.0
 django-rest-framework-social-oauth2==1.1.0
 djangorestframework==3.9.2

@@ -25,6 +25,7 @@ import {
   MatToolbarModule
 } from '@angular/material';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
+import { NavbarComponent } from './navbar/navbar.component';
 
 @NgModule({
   declarations: [
@@ -33,6 +34,7 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
     HomeComponent,
     AlertComponent,
     LoginComponent,
+    NavbarComponent,
   ],
   imports: [
     BrowserModule,
@@ -41,8 +43,8 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
     HttpClientModule,
     ReactiveFormsModule,
     // MatToolbarModule,
-    // MatButtonModule,
-    // MatCardModule,
+    MatButtonModule,
+    MatCardModule,
     // MatInputModule,
     // MatDialogModule,
     // MatTableModule,
