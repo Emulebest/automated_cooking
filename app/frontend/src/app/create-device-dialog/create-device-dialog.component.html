@@ -12,13 +12,15 @@
         </div>
       </form>
     </mat-step>
-    <mat-step [stepControl]="newDevice">
-      <form [formGroup]="newDevice" (ngSubmit)="onSubmit()">
-        <ng-template matStepLabel>Please wait while we connect you device</ng-template>
-        <div>
-          <button mat-button matStepperNext type="submit">Done</button>
-        </div>
-      </form>
+    <mat-step>
+      <ng-template matStepLabel>Press a connect button on your device</ng-template>
+      <div>
+        <button mat-button matStepperNext type="submit">Done</button>
+      </div>
+    </mat-step>
+    <mat-step>
+      <ng-template matStepLabel>Please wait while we connect your device</ng-template>
+      <mat-progress-bar mode="buffer"></mat-progress-bar>
     </mat-step>
   </mat-horizontal-stepper>
 </div>

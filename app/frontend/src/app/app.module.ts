@@ -20,7 +20,7 @@ import {
   MatCardModule,
   MatDialogModule, MatGridListModule, MatIconModule,
   MatInputModule,
-  MatMenuModule, MatProgressSpinnerModule, MatStepperModule,
+  MatMenuModule, MatProgressBarModule, MatProgressSpinnerModule, MatStepperModule,
   MatTableModule,
   MatToolbarModule
 } from '@angular/material';
@@ -63,7 +63,8 @@ import { CreateDeviceDialogComponent } from './create-device-dialog/create-devic
     MatMenuModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatStepperModule
+    MatStepperModule,
+    MatProgressBarModule
   ],
   providers: [
     AuthGuard,
