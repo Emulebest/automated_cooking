@@ -33,6 +33,8 @@ import {WebsocketService} from './_services/websocket.service';
 import {NotificationService} from './_services/notification.service';
 import { DeviceControlComponent } from './device-control/device-control.component';
 import { CreateDeviceDialogComponent } from './create-device-dialog/create-device-dialog.component';
+import { DeviceSetTemperatureComponent } from './device-set-temperature/device-set-temperature.component';
+import {CountdownModule} from 'ngx-countdown';
 
 @NgModule({
   declarations: [
@@ -46,6 +48,7 @@ import { CreateDeviceDialogComponent } from './create-device-dialog/create-devic
     DeviceListComponent,
     DeviceControlComponent,
     CreateDeviceDialogComponent,
+    DeviceSetTemperatureComponent,
   ],
   imports: [
     BrowserModule,
@@ -64,7 +67,8 @@ import { CreateDeviceDialogComponent } from './create-device-dialog/create-devic
     MatIconModule,
     MatProgressSpinnerModule,
     MatStepperModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    CountdownModule
   ],
   providers: [
     AuthGuard,
@@ -78,7 +82,8 @@ import { CreateDeviceDialogComponent } from './create-device-dialog/create-devic
 
   ],
   entryComponents: [
-    CreateDeviceDialogComponent
+    CreateDeviceDialogComponent,
+    DeviceSetTemperatureComponent
   ],
   bootstrap: [AppComponent]
 })

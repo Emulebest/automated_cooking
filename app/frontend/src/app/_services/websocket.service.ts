@@ -6,20 +6,17 @@ export class WebsocketService {
   constructor() {
   }
 
-  private subject: Subject<MessageEvent>;
+  private subject: Subject<any>;
 
-  public connect(url): Subject<MessageEvent> {
-    if (!this.subject) {
-      this.subject = this.create(url);
-      console.log('Successfully connected: ' + url);
-    }
+  public connect(url): Subject<any> {
+    this.subject = this.create(url);
     return this.subject;
   }
 
-  private create(url): Subject<MessageEvent> {
+  private create(url): Subject<any> {
     const ws = new WebSocket(url);
 
-    const observable = Observable.create((obs: Observer<MessageEvent>) => {
+    const observable = Observable.create((obs: Observer<any>) => {
       ws.onmessage = obs.next.bind(obs);
       ws.onerror = obs.error.bind(obs);
       ws.onclose = obs.complete.bind(obs);

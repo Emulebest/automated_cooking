@@ -4,4 +4,7 @@ export interface Device {
   status: number;
   connected: boolean;
   temp: number;
+  targetTemp?: number;
+  timestamp?: number;
+  time?: number;
 }

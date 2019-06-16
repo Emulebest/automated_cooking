@@ -1,0 +1,18 @@
+<form [formGroup]="deviceParams" (ngSubmit)="onSubmit()">
+  <div mat-dialog-content>
+    <ng-template matStepLabel>Fill description of you new device</ng-template>
+    <mat-label>Target temperature</mat-label>
+    <mat-form-field>
+      <input type="number" step="0.1" matInput formControlName="targetTemp" placeholder="70"/>
+    </mat-form-field>
+    <mat-label>Time in minutes</mat-label>
+    <mat-form-field>
+      <input matInput formControlName="timer" type="number" placeholder="10"/>
+    </mat-form-field>
+  </div>
+  <div mat-dialog-actions>
+    <button mat-button (click)="onNoClick()">No Thanks</button>
+    <button mat-button type="submit">Ok</button>
+  </div>
+</form>
+

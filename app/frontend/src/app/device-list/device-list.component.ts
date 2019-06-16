@@ -2,6 +2,7 @@ import {Component, OnInit} from '@angular/core';
 import {DeviceService} from '../_services/device.service';
 import {Device} from '../_models/device';
 import {NotificationService} from '../_services/notification.service';
+import {take} from 'rxjs/operators';
 
 @Component({
   selector: 'app-device-list',
@@ -16,10 +17,8 @@ export class DeviceListComponent implements OnInit {
   }
 
   ngOnInit() {
-    this.deviceService.newDeviceCreated.subscribe(device => {
-      console.log(device);
+    this.deviceService.newDeviceCreated.pipe(take(1)).subscribe(device => {
       this.devices.push(device);
-      console.log(this.devices);
     });
     this.deviceService.readDevices().subscribe(devices => {
       this.devices = devices;
