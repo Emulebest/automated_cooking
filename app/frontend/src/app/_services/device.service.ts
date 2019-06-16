@@ -30,11 +30,11 @@ export class DeviceService {
     this.newDeviceCreated.next(device);
   }
 
-  setTime(deviceId: number, time: number) {
-    return this.http.patch(`${environment.deviceUrl}/devices/`, {
-      id: deviceId,
+  setTargetParams(deviceId: number, time: number, curTime: number, targetTemp: number) {
+    return this.http.patch(`${environment.deviceUrl}/devices/${deviceId}`, {
+      targetTemp,
       time,
-      current_time: Date.now()
+      current_time: curTime
     }).pipe(first());
   }
 }

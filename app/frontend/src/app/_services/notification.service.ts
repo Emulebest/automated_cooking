@@ -28,6 +28,7 @@ export class NotificationService {
   }
 
   sendMsg(msg: SetTemp) {
+    console.log(msg);
     this.ws.next(msg);
   }
 }

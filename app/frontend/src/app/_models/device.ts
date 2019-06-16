@@ -1,7 +1,7 @@
 export interface Device {
   id: number;
   description: string;
-  status: number;
+  status: string;
   connected: boolean;
   temp: number;
   targetTemp?: number;

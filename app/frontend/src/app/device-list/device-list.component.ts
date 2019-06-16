@@ -21,6 +21,7 @@ export class DeviceListComponent implements OnInit {
       this.devices.push(device);
     });
     this.deviceService.readDevices().subscribe(devices => {
+      console.log(devices);
       this.devices = devices;
     });
     this.notificationService.messages.subscribe(msg => {

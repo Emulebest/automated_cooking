@@ -10,7 +10,7 @@ from aioredis.pubsub import Receiver
 from backend import BasicAuthBackend
 from data_types import Device
 from data_types import DeviceRequest
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from jwt import DecodeError
 from models import devices
 from settings import create_redis, DATABASE_URL, SECRET, ALGORITHM
@@ -18,6 +18,9 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import Request
 from starlette.websockets import WebSocket, WebSocketDisconnect
 from starlette.middleware.cors import CORSMiddleware
+
+from data_types import ChangeParams
+
 app = FastAPI()
 app.add_middleware(CORSMiddleware,
                    allow_origins=['*'],
@@ -82,10 +85,18 @@ class DeviceManager:
         elif self.msg_type == "set_temp":
             if self.extra["temp"] == 0:
                 print(f"Setting device {self.device_id} to off")
-                query = devices.update().where(devices.c.user == self.user).values(status="off")
+                query = devices.update().where(devices.c.user == self.user and devices.c.id == self.device_id).values(
+                    status="off", time=None, targetTemp=None, timestamp=None)
                 await database.execute(query)
                 pub.publish_json('connections',
                                  {"user": self.user, "device": self.device_id, "device_delta": {"status": "off"}})
+            else:
+                print(f"Setting device {self.device_id} to on")
+                query = devices.update().where(devices.c.user == self.user and devices.c.id == self.device_id).values(
+                    status="on")
+                await database.execute(query)
+                pub.publish_json('connections',
+                                 {"user": self.user, "device": self.device_id, "device_delta": {"status": "on"}})
             pub.publish_json('sous-vide', {"type": self.msg_type, "device": self.device_id, "user": self.user,
                                            "temp": self.extra["temp"]})
 
@@ -149,6 +160,21 @@ async def shutdown():
     await database.disconnect()
     await sub.close()
     await pub.close()
+
+
+async def stop_device(user_id: int, device_id: int, time_sleep_min: int):
+    await asyncio.sleep(time_sleep_min * 60)
+    print("Stopping device", flush=True)
+    device_manager = DeviceManager(user_id, device_id, "set_temp", {"temp": 0})
+    await device_manager.perform_update()
+
+
+@app.patch("/devices/{item_id}")
+async def patch_device(*, request: Request, item_id: int, change_params: ChangeParams, background_tasks: BackgroundTasks):
+    query = devices.update().where(devices.c.user == request.user.display_name and devices.c.id == item_id).values(
+        time=change_params.time, timestamp=change_params.current_time, targetTemp=change_params.targetTemp)
+    await database.execute(query)
+    background_tasks.add_task(stop_device, request.user.display_name, item_id, change_params.time)
 
 
 @app.get("/devices/", response_model=List[Device])

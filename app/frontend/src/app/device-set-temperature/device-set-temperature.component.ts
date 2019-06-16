@@ -16,6 +16,7 @@ export class DeviceSetTemperatureComponent implements OnInit {
   deviceParams: FormGroup;
   submitted = false;
   subscription: Subscription;
+  private ts: number;
 
   constructor(
     private formBuilder: FormBuilder,
@@ -49,11 +50,15 @@ export class DeviceSetTemperatureComponent implements OnInit {
       temp: Number(this.deviceParams.controls.targetTemp.value)
     });
 
-    this.deviceService.setTime(this.data.device, Number(this.deviceParams.controls.timer.value)).subscribe(data => {
+    this.ts = new Date().getTime();
+
+    this.deviceService.setTargetParams(this.data.device, Number(this.deviceParams.controls.timer.value), this.ts,
+      Number(this.deviceParams.controls.targetTemp.value)).subscribe(data => {
     }, error => this.alertService.error(error));
     this.dialogRef.close({
       targetTemp: Number(this.deviceParams.controls.targetTemp.value),
-      timer: Number(this.deviceParams.controls.timer.value)
+      timer: Number(this.deviceParams.controls.timer.value),
+      currentTime: this.ts
     });
   }
 

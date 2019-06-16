@@ -2,6 +2,7 @@ import {Component, Input, OnInit} from '@angular/core';
 import {Device} from '../_models/device';
 import {MatDialog} from '@angular/material';
 import {DeviceSetTemperatureComponent} from '../device-set-temperature/device-set-temperature.component';
+import {AlertService} from '../_services/alert.service';
 
 @Component({
   selector: 'app-device',
@@ -12,7 +13,7 @@ export class DeviceComponent implements OnInit {
 
   @Input() device: Device;
 
-  constructor(public dialog: MatDialog) {
+  constructor(public dialog: MatDialog, private alertService: AlertService) {
   }
 
   get timer() {
@@ -23,6 +24,14 @@ export class DeviceComponent implements OnInit {
     return;
   }
 
+  onCompleted() {
+    this.device.time = undefined;
+    this.device.timestamp = undefined;
+    this.device.targetTemp = undefined;
+    this.device.status = 'off';
+    this.alertService.success('Cooking finished successfully!');
+  }
+
   openDialog(): void {
     const dialogRef = this.dialog.open(DeviceSetTemperatureComponent, {
       width: '250px',
@@ -30,7 +39,12 @@ export class DeviceComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      console.log('The dialog was closed ' + result);
+      if (result) {
+        this.device.timestamp = result.currentTime;
+        this.device.targetTemp = result.targetTemp;
+        this.device.time = result.timer;
+        this.device.status = "on";
+      }
     });
   }
 
