@@ -75,8 +75,8 @@ export class DeviceStatisticsComponent implements OnInit, OnDestroy {
     });
     this.subscription = interval(10000).pipe(switchMap(() => this.statService.getLatestStat())).subscribe(metrics => {
       const metric = metrics[0];
-      let upd_time = false;
-      let upd_val = false;
+      let updTime = false;
+      let updVal = false;
       if (metric) {
         if (this.time.length > 20) {
           this.time.shift();
@@ -86,13 +86,13 @@ export class DeviceStatisticsComponent implements OnInit, OnDestroy {
         }
         if (this.time[this.time.length - 1] !== new Date(metric.dt)) {
           this.time.push(new Date(metric.dt).getMinutes());
-          upd_time = true;
+          updTime = true;
         }
         if (this.metric[this.metric.length - 1] !== metric.value) {
           this.metric.push(metric.value);
-          upd_val = true;
+          updVal = true;
         }
-        if (upd_time && upd_val) {
+        if (updTime && updVal) {
           this.chart.update();
         }
       }
