@@ -12,7 +12,7 @@ class MetricsListView(generics.ListAPIView):
     serializer_class = MetricSerializer
 
     def get_queryset(self):
-        return Metric.objects.filter(user=self.request.user).order_by('dt')[:20]
+        return Metric.objects.filter(user=self.request.user).order_by('-dt')[:20]
 
 
 class LtsMetricsListView(generics.ListAPIView):
@@ -20,7 +20,7 @@ class LtsMetricsListView(generics.ListAPIView):
     serializer_class = MetricSerializer
 
     def get_queryset(self):
-        return Metric.objects.filter(user=self.request.user).order_by('dt')[:1]
+        return Metric.objects.filter(user=self.request.user).order_by('-dt')[:1]
 
 
 class ProcessStartupView(APIView):
