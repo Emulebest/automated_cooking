@@ -10,15 +10,19 @@ from device_statistics.models import Metric
 
 
 def redis_get_device_info():
-    r = redis.StrictRedis(host='localhost', port=6379)  # Connect to local Redis instance
+    r = redis.StrictRedis(host='redis', port=6379)  # Connect to local Redis instance
     try:
 
+        if r.get("running"):
+            return
+        else:
+            r.set("running", "true")
         p = r.pubsub()
         p.subscribe('sous-vide')
 
         while True:
             message = p.get_message()  # Checks for message
-            if message:
+            if message and message['type'] != "subscribe":
                 msg = message['data']  # Get data from message
                 msg = msg.decode("utf-8").replace("'", '"')
                 redis_msg = json.loads(msg)

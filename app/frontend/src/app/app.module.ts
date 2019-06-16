@@ -35,6 +35,7 @@ import { DeviceControlComponent } from './device-control/device-control.componen
 import { CreateDeviceDialogComponent } from './create-device-dialog/create-device-dialog.component';
 import { DeviceSetTemperatureComponent } from './device-set-temperature/device-set-temperature.component';
 import {CountdownModule} from 'ngx-countdown';
+import { DeviceStatisticsComponent } from './device-statistics/device-statistics.component';
 
 @NgModule({
   declarations: [
@@ -49,6 +50,7 @@ import {CountdownModule} from 'ngx-countdown';
     DeviceControlComponent,
     CreateDeviceDialogComponent,
     DeviceSetTemperatureComponent,
+    DeviceStatisticsComponent,
   ],
   imports: [
     BrowserModule,
@@ -68,7 +70,7 @@ import {CountdownModule} from 'ngx-countdown';
     MatProgressSpinnerModule,
     MatStepperModule,
     MatProgressBarModule,
-    CountdownModule
+    CountdownModule,
   ],
   providers: [
     AuthGuard,
