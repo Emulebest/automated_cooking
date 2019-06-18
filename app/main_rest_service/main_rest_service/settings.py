@@ -26,7 +26,7 @@ SECRET_KEY = '$sc7z*$mub!&n6ppy6x&c$irlk84=#5i-7jqm)xyj@=qd=nnf1'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['home.korotach.com', 'localhost']
 
 AUTHENTICATION_BACKENDS = [
     'local_auth.backends.HashedPasswordAuthBackend',

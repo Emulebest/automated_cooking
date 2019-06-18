@@ -60,9 +60,9 @@
            type  :type} converted]
       (case type
         "connect"
-        (swap! user-device update-in [device] #(assoc % :user user))
+        (do (println "Msg" converted) (swap! user-device update-in [1] #(assoc % :user user)) (println @user-device))
         "set_temp"
-        (swap! user-device update-in [device] #(assoc % :temp (:temp converted)))
+        (do (println "Setting temp") (swap! user-device update-in [1] #(assoc % :temp (:temp converted))) (println @user-device))
         "default"))
     "subscribe"
     (println "Subscribed to" channel)))
@@ -76,12 +76,12 @@
   [ch msg topic temp-set]
   (let [temp msg]
     (cond
-      (< temp (+ temp-set 0.1)) (write-command topic "1" ch)
-      (> temp (+ temp-set 0.5)) (write-command topic "0" ch))))
+      (< temp (+ temp-set 0.1)) (do (println "Temp" temp) (write-command topic "1" ch))
+      (> temp (+ temp-set 0.5)) (do (println "Temp" temp) (write-command topic "0" ch)))))
 
 (defn send-redis-temp
   ([ch msg device user]
-   (go (>! ch (json/write-str {"user" user, "device" device, "type" "show-temp", "temp" msg})))))
+   (go (>! ch (json/write-str {"user" user, "device" device, "type" "show_temp", "temp" msg})))))
 
 (defn handle-mqtt-msg
   [topic payload user-device mqtt-pub-chan redis-pub-chan]
@@ -96,27 +96,27 @@
                 (send-redis-temp redis-pub-chan msg (:id device) (:user device))))
       "keyUp"
       (case msg
-        1 (go (>! redis-pub-chan (json/write-str {"user" (:user device), "device" (:id device), "type" "connected"})))
-        0 ())
+        0 (go (>! redis-pub-chan (json/write-str {"user" (:user device), "device" (:id device), "type" "connected"})))
+        1 ())
       )))
 
 (defn -main
   "I don't do a whole lot."
   [& args]
   (let [server1-conn {:pool {} :spec {:uri "redis://redis:6379"}}
-        devices (atom {0 (Device. 0 99999 ["test/temp" "keyUp"] 40)})
+        devices (atom {1 (Device. 1 99999 ["test/temp" "keyUp"] 40)})
         redis-sub (chan)
         mqtt-sub (chan)
         mqtt-pub (chan)
         redis-pub (chan)
         _ (get-msg "sous-vide" server1-conn redis-sub)
-        mqtt_conn (mqtt-subscribe "tcp://mosquitto:1883" devices mqtt-sub)]
+        mqtt_conn (mqtt-subscribe "tcp://korotach.com:1883" devices mqtt-sub)]
     (go-loop []
       (alt!
         redis-sub ([[msg-type channel msg]] (handle-redis-msg msg-type channel msg devices mqtt-pub))
         mqtt-sub ([[topic payload]] (handle-mqtt-msg topic payload devices mqtt-pub redis-pub))
         mqtt-pub ([[topic payload]] (mh/publish mqtt_conn topic payload))
-        redis-pub ([payload] (car/wcar server1-conn (car/publish "sous-vide" payload))))
+        redis-pub ([payload] (do (println payload) (car/wcar server1-conn (car/publish "sous-vide" payload)))))
       (recur)))
   )
 

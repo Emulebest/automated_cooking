@@ -80,6 +80,7 @@ class DeviceManager:
     async def perform_update(self):
 
         if self.msg_type == "connect":
+            print("Trying to connect", flush=True)
             pub.publish_json('sous-vide', {"type": self.msg_type, "device": self.device_id, "user": self.user})
 
         elif self.msg_type == "set_temp":

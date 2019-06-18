@@ -46,6 +46,10 @@ export class CreateDeviceDialogComponent implements OnInit, OnDestroy {
       .subscribe(
         data => {
           this.savedDevice = data;
+          this.notificationService.sendMsg({
+            type: 'connect',
+            device: this.savedDevice.id,
+          });
         },
         error => {
           this.alertService.error(error);

@@ -12,7 +12,7 @@ import {SetTemp} from '../_models/setTemp';
 })
 export class NotificationService {
   public messages: Observable<Message>;
-  private ws: Subject<SetTemp>;
+  private ws: Subject<any>;
 
   constructor(private wsService: WebsocketService, private authService: AuthService) {
     this.ws = wsService.connect(`${environment.wsUrl}?token=${authService.token}`);
@@ -27,7 +27,7 @@ export class NotificationService {
       }), share());
   }
 
-  sendMsg(msg: SetTemp) {
+  sendMsg(msg: any) {
     console.log(msg);
     this.ws.next(msg);
   }
