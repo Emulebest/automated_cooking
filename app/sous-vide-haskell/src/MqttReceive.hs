@@ -1,7 +1,13 @@
 module MqttReceive where
 
 import Control.Concurrent
-    (Chan, newChan, readChan, writeChan)
+    (Chan, readChan, writeChan)
+import Network.MQTT.Client (MQTTClient, Topic)
+import Data.ByteString.Lazy.Char8 (ByteString)
 
-getMsg :: Chan String -> String -> String -> String -> IO ()    
-getMsg ch mtype topic msg = writeChan ch msg
+getMsg :: Chan ByteString -> MQTTClient -> Topic -> ByteString -> IO ()
+getMsg ch _ _ = writeChan ch
+
+
+printMsg :: Chan ByteString -> IO ()
+printMsg ch = readChan ch >>= print

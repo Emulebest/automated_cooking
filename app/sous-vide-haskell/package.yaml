@@ -24,6 +24,8 @@ dependencies:
 - mtl
 - net-mqtt
 - transformers
+- bytestring
+- async
 
 library:
   source-dirs: src
