@@ -6,7 +6,7 @@ async-timeout==3.0.1
 Click==7.0
 databases==0.2.2
 dataclasses==0.6
-fastapi==0.20.0
+fastapi==0.65.2
 gunicorn==19.9.0
 h11==0.8.1
 hiredis==1.0.0
